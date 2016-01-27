@@ -6,7 +6,7 @@ fgdb = "durham.gdb"
 wakesde = "wake.sde"
 #name of the property layer to be used as template
 propertyA = "WAKE.PROPERTY_A"
-#name of SDE connection file (put in same directory as this script)
+#name of destination SDE connection file (put in same directory as this script)
 destSde = "raleigh.sde"
 #name of the resulting feature class
 fcName = "DURHAM_PROPERTY"
@@ -17,13 +17,19 @@ def createGdb ():
 	arcpy.env.workspace = os.path.join(path, fgdb)
 	#create new feature class using Wake property layer as template
 	fc = arcpy.CreateFeatureclass_management(os.path.join(path, fgdb), fcName, "POLYGON", os.path.join(os.path.join(path, wakesde), propertyA), 'SAME_AS_TEMPLATE', 'SAME_AS_TEMPLATE', os.path.join(os.path.join(path, wakesde), propertyA))
+	arcpy.AddIndex_management(fc, 'PIN_NUM', 'PARCEL_CONDO_PIN_NUM', 'NON_UNIQUE', 'ASCENDING');	
+	arcpy.AddIndex_management(fc, 'FULL_STREET_NAME', 'PARCEL_CONDO_F_ST_N', 'NON_UNIQUE', 'ASCENDING');
+	arcpy.AddIndex_management(fc, 'OWNER', 'PARCEL_CONDO_OWNER', 'NON_UNIQUE', 'ASCENDING');	
 	return fc
 def updateSde (fc):
 	arcpy.env.workspace = os.path.join(path, destSde)
 	if len(arcpy.ListFeatureClasses('*' + fcName)) == 0:
 		#create new feature class in SDE if it does not exist
 		print "Copying features to SDE"
-		arcpy.CopyFeatures_management(fc, fcName)
+		sdeFc = arcpy.FeatureClassToFeatureClass_conversion(fc, os.path.join(path, destSde), fcName)
+		arcpy.AddIndex_management(sdeFc, 'PIN_NUM', 'PARCEL_CONDO_PIN_NUM', 'NON_UNIQUE', 'ASCENDING');	
+		arcpy.AddIndex_management(sdeFc, 'FULL_STREET_NAME', 'PARCEL_CONDO_F_ST_N', 'NON_UNIQUE', 'ASCENDING');
+		arcpy.AddIndex_management(sdeFc, 'OWNER', 'PARCEL_CONDO_OWNER', 'NON_UNIQUE', 'ASCENDING');
 	else:
 		#delete existing property features and replace with new property features
 		print "Deleting features from SDE"
